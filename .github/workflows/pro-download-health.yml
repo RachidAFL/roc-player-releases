@@ -1,0 +1,29 @@
+name: Pro download health
+on:
+  release:
+    types: [published, edited, released, deleted]
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: pro-download-health
+  cancel-in-progress: false
+jobs:
+  verify-and-repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Test release selection safeguards
+        run: node --test scripts/pro-download-health.test.mjs
+      - name: Verify signed APK, repair latest and synchronize Pro updater
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PRO_UPDATE_SUPABASE_URL: ${{ secrets.PRO_UPDATE_SUPABASE_URL }}
+          PRO_UPDATE_SUPABASE_KEY: ${{ secrets.PRO_UPDATE_SUPABASE_KEY }}
+        run: node scripts/pro-download-health.mjs
